@@ -1,0 +1,14 @@
+.DS_Store
+.continue/
+.codex/
+.agents/
+Users/
+.build/
+.build-test/
+.venv/
+__pycache__/
+*.pyc
+dist/
+.env
+.env.*
+!.env.example

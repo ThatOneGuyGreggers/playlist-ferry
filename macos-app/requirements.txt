@@ -1,0 +1,1 @@
+-e ../spotify-downloader
