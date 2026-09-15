@@ -2,7 +2,7 @@
 
 This directory contains a SwiftUI front end and a Python worker for public Spotify playlists. A local debug `.app` can be built, but it is not yet a dependency-free distribution build.
 
-The native interface follows the project-specific [UI design guidance](UI_DESIGN.md), derived from the referenced Apple Human Interface Guidelines summary.
+The native interface follows the project-specific [UI design guidance](https://github.com/ThatOneGuyGreggers/Spotify-PlayList-YouTube-downloader/wiki/UI_DESIGN), derived from the referenced Apple Human Interface Guidelines summary.
 
 The Python worker uses [spotDL](https://github.com/spotdl/spotify-downloader), distributed under its upstream [MIT license](../spotify-downloader/LICENSE). Interface design draws on [eonist's Apple HIG summary](https://gist.github.com/eonist/f4ba31012815731284d867232f6c70e4). See the [project acknowledgments](../README.md#references-and-acknowledgments) for attribution and dependency details. Initialize the dependency with `git submodule update --init --recursive` before following the instructions below.
 
