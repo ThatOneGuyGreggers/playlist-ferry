@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR=${0:A:h}
 APP_ROOT=${SCRIPT_DIR:h}
 PROJECT_ROOT=${APP_ROOT:h}
-BINARY=${1:-${APP_ROOT}/.build/debug/SpotifyPlaylistDownloader}
-APP="${APP_ROOT}/dist/Spotify Playlist Downloader.app"
+BINARY=${1:-${APP_ROOT}/.build/debug/PlaylistFerry}
+APP="${APP_ROOT}/dist/Playlist Ferry.app"
 
 if [[ ! -x "${BINARY}" ]]; then
     print -u2 "Built executable not found: ${BINARY}"
@@ -15,7 +15,8 @@ fi
 # Recreate the test bundle so stale resources cannot survive a rebuild.
 rm -rf "${APP}"
 mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources/spotify-downloader"
-cp "${BINARY}" "${APP}/Contents/MacOS/SpotifyPlaylistDownloader"
+cp "${BINARY}" "${APP}/Contents/MacOS/PlaylistFerry"
+cp "${APP_ROOT}/Assets/playlist-ferry.icns" "${APP}/Contents/Resources/PlaylistFerry.icns"
 cp "${APP_ROOT}/worker/worker.py" "${APP}/Contents/Resources/worker.py"
 cp -R "${PROJECT_ROOT}/spotify-downloader/spotdl" "${APP}/Contents/Resources/spotify-downloader/spotdl"
 
@@ -24,10 +25,12 @@ cat > "${APP}/Contents/Info.plist" <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
-    <key>CFBundleExecutable</key><string>SpotifyPlaylistDownloader</string>
-    <key>CFBundleIdentifier</key><string>local.greggers.spotify-playlist-downloader.test</string>
+    <key>CFBundleExecutable</key><string>PlaylistFerry</string>
+    <key>CFBundleIdentifier</key><string>local.greggers.playlist-ferry.test</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-    <key>CFBundleName</key><string>Spotify Playlist Downloader</string>
+    <key>CFBundleName</key><string>Playlist Ferry</string>
+    <key>CFBundleDisplayName</key><string>Playlist Ferry</string>
+    <key>CFBundleIconFile</key><string>PlaylistFerry</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
     <key>CFBundleVersion</key><string>1</string>

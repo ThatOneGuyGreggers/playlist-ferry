@@ -2,10 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "SpotifyPlaylistDownloader",
+    name: "PlaylistFerry",
     platforms: [.macOS(.v13)],
-    products: [.executable(name: "SpotifyPlaylistDownloader", targets: ["SpotifyPlaylistDownloader"])],
+    products: [.executable(name: "PlaylistFerry", targets: ["PlaylistFerry"])],
     targets: [
-        .executableTarget(name: "SpotifyPlaylistDownloader", path: "Swift"),
+        .executableTarget(name: "PlaylistFerry", path: "Swift"),
     ]
 )

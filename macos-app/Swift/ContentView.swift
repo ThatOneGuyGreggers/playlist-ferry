@@ -53,7 +53,7 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 340)
         } detail: {
             mainContent
-                .navigationTitle(worker.playlist?.name ?? "Playlist Downloader")
+                .navigationTitle(worker.playlist?.name ?? "Playlist Ferry")
                 .toolbar { toolbarContent }
         }
         .frame(minWidth: 820, minHeight: 560)

@@ -1,8 +1,8 @@
-# macOS app prototype
+# Playlist Ferry macOS app prototype
 
 This directory contains a SwiftUI front end and a Python worker for public Spotify playlists. A local debug `.app` can be built, but it is not yet a dependency-free distribution build.
 
-The native interface follows the project-specific [UI design guidance](https://github.com/ThatOneGuyGreggers/Spotify-PlayList-YouTube-downloader/wiki/UI_DESIGN), derived from the referenced Apple Human Interface Guidelines summary.
+The native interface follows the project-specific [UI design guidance](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/UI_DESIGN), derived from the referenced Apple Human Interface Guidelines summary.
 
 The Python worker uses [spotDL](https://github.com/spotdl/spotify-downloader), distributed under its upstream [MIT license](../spotify-downloader/LICENSE). Interface design draws on [eonist's Apple HIG summary](https://gist.github.com/eonist/f4ba31012815731284d867232f6c70e4). See the [project acknowledgments](../README.md#references-and-acknowledgments) for attribution and dependency details. Initialize the dependency with `git submodule update --init --recursive` before following the instructions below.
 
@@ -11,11 +11,11 @@ The Python worker uses [spotDL](https://github.com/spotdl/spotify-downloader), d
 From the project root on a Mac with Swift Command Line Tools:
 
 ```sh
-swift build --package-path macos-app --scratch-path /tmp/spotify-swift-build -j 1 \
-  -Xswiftc -module-cache-path -Xswiftc /tmp/spotify-swift-modules
+swift build --package-path macos-app --scratch-path /tmp/playlist-ferry-build -j 1 \
+  -Xswiftc -module-cache-path -Xswiftc /tmp/playlist-ferry-modules
 macos-app/scripts/package-test-app.sh \
-  /tmp/spotify-swift-build/x86_64-apple-macosx/debug/SpotifyPlaylistDownloader
-open 'macos-app/dist/Spotify Playlist Downloader.app'
+  /tmp/playlist-ferry-build/x86_64-apple-macosx/debug/PlaylistFerry
+open 'macos-app/dist/Playlist Ferry.app'
 ```
 
 The resulting bundle is ad hoc signed for local testing. This build is x86_64 because it was compiled on an Intel Mac; an Apple Silicon build needs a build on that target or a universal build process. The bundle includes the Swift UI, worker script, and spotDL source. On this development machine it uses `macos-app/.venv`, and public playlist preview has been verified. It does not yet bundle that Python runtime, FFmpeg, or Deno, so it is not portable and downloads still require those tools. Do not treat this debug build as an installer or a notarized release.
@@ -31,7 +31,7 @@ cd macos-app
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 cd ..
-swift run --package-path macos-app SpotifyPlaylistDownloader
+swift run --package-path macos-app PlaylistFerry
 ```
 
 The Swift target uses `macos-app/.venv/bin/python` when run from the project root, then falls back to `/usr/bin/python3`. FFmpeg is also required for downloads; distribution will bundle it and Deno. The UI currently previews a playlist and downloads songs in order, with per-track status and cancellation by stopping the worker process. Packaging, resume, match review, and release signing remain to be built.

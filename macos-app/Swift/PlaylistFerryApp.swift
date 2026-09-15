@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SpotifyDownloaderApp: App {
+struct PlaylistFerryApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
