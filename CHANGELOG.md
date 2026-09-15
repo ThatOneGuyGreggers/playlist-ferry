@@ -2,11 +2,11 @@
 
 ## 2026-09-14
 
-- Preserved the MIT license selected in the GitHub repository and updated the README to distinguish the app license from upstream notices. LLM: Model not disclosed.
+- Preserved the MIT license selected in the GitHub repository and updated the README to distinguish the app license from upstream notices. LLM: GPT-5.6 Sol (Codex).
 
-- Added the GitHub destination to the clone instructions and prepared the source for upload to the private repository. LLM: Model not disclosed.
+- Added the GitHub destination to the clone instructions and prepared the source for upload to the private repository. LLM: GPT-5.6 Sol (Codex).
 
-- Prepared GitHub publication with a project README, explicit spotDL and eonist HIG references, a pinned upstream submodule, and exclusions for local environments and build output. LLM: Model not disclosed.
+- Prepared GitHub publication with a project README, explicit spotDL and eonist HIG references, a pinned upstream submodule, and exclusions for local environments and build output. LLM: GPT-5.6 Sol (Codex).
 
 ## 2025-01-15
 
