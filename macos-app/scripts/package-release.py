@@ -1,4 +1,4 @@
-"""Create and audit a relocatable release candidate, then verify its extracted ZIP."""
+"""Create and audit a relocatable release, then verify its extracted ZIP."""
 
 import argparse
 import hashlib
@@ -13,6 +13,7 @@ from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = APP_ROOT.parent
+VERSION = "1.0.0"
 MACHO_MAGIC = {
     b"\xfe\xed\xfa\xce",
     b"\xce\xfa\xed\xfe",
@@ -149,7 +150,7 @@ def package(args: argparse.Namespace, app: Path, output: Path) -> None:
     )
     shutil.copy2(APP_ROOT / f"tools-{args.arch}.json", licenses / "Tool-manifest.json")
     (licenses / "NOTICE.txt").write_text(
-        "Playlist Ferry release candidate (native architecture, macOS 13+).\nPython and Python-package licenses are retained in the python directory.\nFFmpeg and Deno notices are retained in tools/licenses.\nspotDL: https://github.com/spotdl/spotify-downloader\nDesign reference: https://gist.github.com/eonist/f4ba31012815731284d867232f6c70e4\nFFmpeg and LAME corresponding sources and build instructions are in tools/sources.\nDeno source: https://github.com/denoland/deno/tree/v2.9.6\nStandalone Python: https://github.com/astral-sh/python-build-standalone\nRedistribution requires reviewing all dependency licenses and corresponding source obligations.\n"
+        "Playlist Ferry 1.0.0 (native architecture, macOS 13+).\nPython and Python-package licenses are retained in the python directory.\nFFmpeg and Deno notices are retained in tools/licenses.\nspotDL: https://github.com/spotdl/spotify-downloader\nDesign reference: https://gist.github.com/eonist/f4ba31012815731284d867232f6c70e4\nFFmpeg and LAME corresponding sources and build instructions are in tools/sources.\nDeno source: https://github.com/denoland/deno/tree/v2.9.6\nStandalone Python: https://github.com/astral-sh/python-build-standalone\nRedistribution requires reviewing all dependency licenses and corresponding source obligations.\n"
     )
     info = {
         "CFBundleExecutable": "PlaylistFerry",
@@ -158,7 +159,7 @@ def package(args: argparse.Namespace, app: Path, output: Path) -> None:
         "CFBundleDisplayName": "Playlist Ferry",
         "CFBundleIconFile": "PlaylistFerry",
         "CFBundlePackageType": "APPL",
-        "CFBundleShortVersionString": "0.9.0",
+        "CFBundleShortVersionString": VERSION,
         "CFBundleVersion": "1",
         "LSMinimumSystemVersion": "13.0",
         "NSHighResolutionCapable": True,
@@ -207,7 +208,7 @@ def package(args: argparse.Namespace, app: Path, output: Path) -> None:
     run("xattr", "-cr", str(app))
     run(*signing, str(app))
     run("codesign", "--verify", "--deep", "--strict", str(app))
-    archive = output / f"Playlist-Ferry-0.9.0-rc.1-macos-{args.arch}.zip"
+    archive = output / f"Playlist-Ferry-{VERSION}-macos-{args.arch}.zip"
     if archive.exists():
         archive.unlink()
     run(

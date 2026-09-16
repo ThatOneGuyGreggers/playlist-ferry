@@ -1,6 +1,6 @@
 # Playlist Ferry macOS app
 
-This directory contains a SwiftUI front end and a Python worker for public Spotify playlists. The release candidate includes its Python runtime and media tools; the debug build uses local development dependencies.
+This directory contains a SwiftUI front end and a Python worker for public Spotify playlists. The 1.0.0 release includes its Python runtime and media tools; the debug build uses local development dependencies.
 
 The native interface follows the project-specific [UI design guidance](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/UI_DESIGN), derived from the referenced Apple Human Interface Guidelines summary.
 
@@ -34,7 +34,7 @@ cd ..
 swift run --package-path macos-app PlaylistFerry
 ```
 
-The Swift target uses `macos-app/.venv/bin/python` when run from the project root, then falls back to `/usr/bin/python3`. FFmpeg and Deno are required for source downloads; the release candidate bundles both. The UI currently previews a playlist and downloads songs in order, with per-track status and cancellation by stopping the worker process. Resume and manual match review are outside the current release scope. Distribution signing and notarization remain release gates.
+The Swift target uses `macos-app/.venv/bin/python` when run from the project root, then falls back to `/usr/bin/python3`. FFmpeg and Deno are required for source downloads; the release bundles both. The UI currently previews a playlist and downloads songs in order, with per-track status and cancellation by stopping the worker process. Resume and manual match review are outside the current release scope. The GitHub release is ad hoc signed and documents the manual macOS approval step.
 
 ## Apple output presets
 
@@ -51,7 +51,7 @@ All presets embed spotDL's supported metadata and artwork. ALAC is omitted becau
 
 The worker reads one UTF-8 JSON line from stdin and writes newline-delimited JSON events to stdout. Requests have `version: 1`, `action: "preview"` or `"download"`, and a public Spotify playlist `url`. Download requests also need an existing `destination` directory and a supported `preset` identifier. Events include `playlist`, `track_started`, `track_complete`, `track_failed`, `complete`, and `error`. Diagnostics go to stderr. Closing the worker process cancels the active job.
 
-## Portable release candidate
+## Portable release
 
 Build on a native Intel or Apple Silicon Mac with Command Line Tools and `uv` installed. The preparation script installs isolated Python 3.13.15, hash-locked dependencies, the pinned spotDL submodule, and checksum-verified Deno. It compiles audio-only FFmpeg 9.0.1 and LAME 3.100 from verified source archives, retaining matching sources, build instructions, and license notices in the bundle.
 
@@ -68,11 +68,11 @@ python3 macos-app/scripts/package-release.py \
   --runtime macos-app/.release-work/python/cpython-3.13.15-macos-x86_64-none \
   --tools macos-app/.release-work/tools
 python3 macos-app/scripts/check-release.py \
-  macos-app/dist/release-candidate/Playlist-Ferry-0.9.0-rc.1-macos-x86_64.zip
+  macos-app/dist/release-candidate/Playlist-Ferry-1.0.0-macos-x86_64.zip
 ```
 
 For Apple Silicon, use `arm64` for the Swift binary and ZIP names and `aarch64` for the Python directory. The packager checks architecture, external dependencies, symlinks, and extracted ZIP signatures. The check script runs eight protocol tests, five native process-lifecycle checks, and all four audio presets with generated audio and artwork, then rechecks the signature. The manually dispatched GitHub Actions workflow runs these checks on native Intel and Apple Silicon runners and uploads candidate artifacts.
 
-The candidate is ad hoc signed by default and is not notarized. See [Apple’s distribution notarization documentation](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution) for the account and signing prerequisites. A stable 1.0.0 release requires Developer ID signing with the hardened runtime and appropriate Python runtime entitlements, successful notarization and stapling, and launch/download/cancellation validation on clean Macs. The packager accepts `--identity "Developer ID Application: …"` to enable the hardened runtime and scoped Python/Deno executable-memory entitlements. Add `--notary-profile <existing-keychain-profile>` to submit to Apple, staple and validate the ticket, and require a successful Gatekeeper assessment before producing the final ZIP. This path requires your certificate and account credentials and has not yet been exercised on this Mac. Passing an identity alone does not satisfy all release requirements. No stable release is published automatically.
+Version 1.0.0 is ad hoc signed and is not notarized. On first launch, macOS may block it; open **System Settings → Privacy & Security**, find the blocked Playlist Ferry message, choose **Open Anyway**, then confirm **Open**. Only install the ZIP from this repository and verify its SHA-256 checksum. The packager accepts `--identity "Developer ID Application: …"` to enable the hardened runtime and scoped Python/Deno executable-memory entitlements. Add `--notary-profile <existing-keychain-profile>` to submit to Apple, staple and validate the ticket, and require a successful Gatekeeper assessment before producing the final ZIP. This optional path requires your certificate and account credentials and has not yet been exercised on this Mac. Passing an identity alone does not satisfy all notarization requirements.
 
 Public playlist preview and a first-track download have also been checked using the user-supplied playlist. Download matching depends on Spotify and YouTube availability; a single successful download does not establish that every track will be available or matched correctly.

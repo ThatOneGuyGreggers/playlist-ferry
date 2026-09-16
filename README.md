@@ -2,7 +2,7 @@
 
 A SwiftUI app and Python worker for previewing public Spotify playlists and downloading matching audio through spotDL. It offers Apple device audio presets, track status, destination selection, and cancellation.
 
-The release candidate bundles Python, FFmpeg, FFprobe, and Deno and is tested outside the development environment. It is ad hoc signed for testing; a stable 1.0.0 release still requires distribution signing, notarization, and native Mac validation.
+Version 1.0.0 bundles Python, FFmpeg, FFprobe, and Deno and is tested outside the development environment on Intel and Apple Silicon. It is ad hoc signed, so macOS will require users to approve it manually in Privacy & Security.
 
 ## Get started
 
