@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import json
 import platform
 import plistlib
 import re
@@ -50,7 +51,7 @@ def audit(app: Path, architecture: str) -> list[Path]:
     for path in files:
         if architecture not in run("lipo", "-archs", str(path)).split():
             raise ValueError(f"Requested architecture missing: {path}")
-        commands = run("otool", "-l", str(path))
+        commands = run("otool", "-arch", architecture, "-l", str(path))
         minimums = re.findall(
             r"cmd LC_BUILD_VERSION\n(?:(?!Load command).)*?\n\s+minos ([\d.]+)",
             commands,
@@ -67,7 +68,9 @@ def audit(app: Path, architecture: str) -> list[Path]:
                 raise ValueError(
                     f"Native dependency needs macOS {minimum}, above 13.0: {path}"
                 )
-        for line in run("otool", "-L", str(path)).splitlines()[1:]:
+        for line in run("otool", "-arch", architecture, "-L", str(path)).splitlines()[
+            1:
+        ]:
             dependency = line.strip().split(" (", 1)[0]
             if dependency.startswith("/") and not dependency.startswith(
                 ("/usr/lib/", "/System/Library/")
@@ -83,9 +86,17 @@ def main() -> None:
     parser.add_argument("--tools", type=Path, required=True)
     parser.add_argument("--identity", default="-")
     parser.add_argument(
+        "--notary-profile",
+        help="Existing notarytool keychain profile for Apple submission",
+    )
+    parser.add_argument(
         "--arch", choices=["x86_64", "arm64"], default=platform.machine()
     )
     args = parser.parse_args()
+    if args.notary_profile and args.identity == "-":
+        parser.error(
+            "Notarization requires a Developer ID identity; ad hoc signatures are insufficient."
+        )
     for required in (
         args.binary,
         args.runtime / "bin/python3.13",
@@ -159,19 +170,42 @@ def package(args: argparse.Namespace, app: Path, output: Path) -> None:
     run("xattr", "-cr", str(app))
     # uv rewrites libpython's ID at installation; remove that builder-specific ID.
     for path in native_files(app):
-        identifiers = run("otool", "-D", str(path)).splitlines()[1:]
+        identifiers = [
+            line.strip()
+            for line in run("otool", "-arch", args.arch, "-D", str(path)).splitlines()[
+                1:
+            ]
+            if line.strip() and not line.rstrip().endswith(":")
+        ]
         if identifiers and identifiers[0].startswith("/"):
             run("install_name_tool", "-id", "@rpath/" + path.name, str(path))
     files = audit(app, args.arch)
     run("xattr", "-cr", str(app))
+    signing = ["codesign", "--force", "--sign", args.identity]
+    if args.identity != "-":
+        signing += ["--options", "runtime", "--timestamp"]
+    entitlements = app.parent / "runtime-entitlements.plist"
+    with entitlements.open("wb") as destination:
+        plistlib.dump(
+            {
+                "com.apple.security.cs.allow-jit": True,
+                "com.apple.security.cs.allow-unsigned-executable-memory": True,
+            },
+            destination,
+        )
     # Sign nested code before sealing the outer application bundle.
     for path in sorted(files, key=lambda p: len(p.parts), reverse=True):
         if path == contents / "MacOS" / "PlaylistFerry":
             continue
         run("xattr", "-c", str(path))
-        run("codesign", "--force", "--sign", args.identity, str(path))
+        executable_options = []
+        if args.identity != "-" and (
+            path.name.startswith("python") or path.name == "deno"
+        ):
+            executable_options = ["--entitlements", str(entitlements)]
+        run(*signing, *executable_options, str(path))
     run("xattr", "-cr", str(app))
-    run("codesign", "--force", "--sign", args.identity, str(app))
+    run(*signing, str(app))
     run("codesign", "--verify", "--deep", "--strict", str(app))
     archive = output / f"Playlist-Ferry-0.9.0-rc.1-macos-{args.arch}.zip"
     if archive.exists():
@@ -186,6 +220,42 @@ def package(args: argparse.Namespace, app: Path, output: Path) -> None:
         str(app),
         str(archive),
     )
+    if args.notary_profile:
+        submission = subprocess.run(
+            [
+                "xcrun",
+                "notarytool",
+                "submit",
+                str(archive),
+                "--keychain-profile",
+                args.notary_profile,
+                "--wait",
+                "--output-format",
+                "json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=3600,
+        )
+        response = json.loads(submission.stdout)
+        if response.get("status") != "Accepted":
+            raise RuntimeError(f"Apple notarization was not accepted: {response}")
+        print(f"Apple accepted notarization: {response.get('id')}")
+        run("xcrun", "stapler", "staple", str(app))
+        run("xcrun", "stapler", "validate", str(app))
+        run("spctl", "--assess", "--type", "execute", "--verbose", str(app))
+        archive.unlink()
+        run(
+            "ditto",
+            "-c",
+            "-k",
+            "--keepParent",
+            "--norsrc",
+            "--noextattr",
+            str(app),
+            str(archive),
+        )
     with tempfile.TemporaryDirectory(prefix="playlist-ferry-extracted-") as directory:
         run("ditto", "-x", "-k", str(archive), directory)
         extracted = Path(directory) / app.name

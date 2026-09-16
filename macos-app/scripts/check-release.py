@@ -4,6 +4,7 @@ import argparse
 import os
 import platform
 import runpy
+import signal
 import subprocess
 import tempfile
 from pathlib import Path
@@ -12,12 +13,25 @@ APP_ROOT = Path(__file__).resolve().parents[1]
 
 
 def run(*args: str, env: dict[str, str] | None = None) -> None:
-    subprocess.run(args, check=True, timeout=300, env=env)
+    process = subprocess.Popen(args, env=env, start_new_session=True)
+    try:
+        code = process.wait(timeout=900)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+        raise
+    if code:
+        raise subprocess.CalledProcessError(code, args)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path)
+    parser.add_argument(
+        "--module-cache",
+        type=Path,
+        default=Path(tempfile.gettempdir()) / "playlist-ferry-modules",
+    )
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="playlist-ferry-check-") as directory:
         root = Path(directory)
@@ -65,7 +79,7 @@ def main() -> None:
             str(APP_ROOT / "Swift/WorkerManager.swift"),
             str(APP_ROOT / "Tests/WorkerManagerTests.swift"),
             "-module-cache-path",
-            str(root / "modules"),
+            str(args.module_cache),
             "-o",
             str(binary),
         )
