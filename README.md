@@ -2,7 +2,7 @@
 
 A SwiftUI app and Python worker for previewing public Spotify playlists and downloading matching audio through spotDL. It offers Apple device audio presets, track status, destination selection, and cancellation.
 
-This is a development prototype. The local test app is ad hoc signed and still needs a Python environment, FFmpeg, and Deno. It is not a portable installer or a notarized release.
+The release candidate bundles Python, FFmpeg, FFprobe, and Deno and is tested outside the development environment. It is ad hoc signed for testing; a stable 1.0.0 release still requires distribution signing, notarization, and native Mac validation.
 
 ## Get started
 
@@ -17,7 +17,7 @@ For an existing clone, run `git submodule update --init --recursive`.
 
 Follow the [app setup and build instructions](macos-app/README.md) to run from source or create a local test bundle. See the [development plan](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/MACOS_APP_PLAN) for remaining work and the [changelog](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CHANGELOG) for changes.
 
-Project documentation lives in the [Wiki](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki). Development work follows the [project instructions](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/AGENTS) and [coding guidelines](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CODING_GUIDELINES). The Wiki also contains the [code review](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CODE_REVIEW).
+Project documentation lives in the [Wiki](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki). The Wiki also contains the [code review](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CODE_REVIEW).
 
 ## References and acknowledgments
 

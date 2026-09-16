@@ -1,0 +1,41 @@
+name: Release candidate checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            arch: x86_64
+            python_arch: x86_64
+          - runner: macos-15
+            arch: arm64
+            python_arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: recursive
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+      - name: Build Swift app
+        run: swift build -c release --package-path macos-app --scratch-path "$RUNNER_TEMP/ferry-build" -j 2
+      - name: Prepare bundled runtime and media tools
+        run: python3 macos-app/scripts/prepare-release.py
+      - name: Package and audit candidate
+        run: >-
+          python3 macos-app/scripts/package-release.py
+          --binary "$RUNNER_TEMP/ferry-build/${{ matrix.arch }}-apple-macosx/release/PlaylistFerry"
+          --runtime "macos-app/.release-work/python/cpython-3.13.15-macos-${{ matrix.python_arch }}-none"
+          --tools macos-app/.release-work/tools --arch "${{ matrix.arch }}"
+      - name: Check extracted candidate
+        run: python3 macos-app/scripts/check-release.py "macos-app/dist/release-candidate/Playlist-Ferry-0.9.0-rc.1-macos-${{ matrix.arch }}.zip"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Playlist-Ferry-candidate-${{ matrix.arch }}
+          path: macos-app/dist/release-candidate/*.zip*
+          retention-days: 14

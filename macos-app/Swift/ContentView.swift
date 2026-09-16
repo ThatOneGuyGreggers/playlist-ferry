@@ -219,6 +219,7 @@ struct ContentView: View {
 
     private var canDownload: Bool {
         !worker.busy && destination != nil && !worker.tracks.isEmpty
+            && worker.previewedURL == playlistURL.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func previewPlaylist() {

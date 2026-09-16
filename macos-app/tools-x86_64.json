@@ -1,0 +1,8 @@
+[
+  {
+    "name": "deno",
+    "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-apple-darwin.zip",
+    "sha256": "7d4524b82bcc557fe020a1a5b56956ed42b992ae5b28026e8ad5d17329533f5f",
+    "zip_member": "deno"
+  }
+]

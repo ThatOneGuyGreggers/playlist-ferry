@@ -32,7 +32,11 @@ class WorkerProtocolTests(unittest.TestCase):
 
     def test_rejects_non_spotify_host(self):
         code, event = self.request(
-            {"version": 1, "action": "preview", "url": "https://evil.example/playlist/123"}
+            {
+                "version": 1,
+                "action": "preview",
+                "url": "https://evil.example/playlist/30eOhDJsGGMtzE6WHpIpTY",
+            }
         )
         self.assertEqual(code, 2)
         self.assertEqual(event["event"], "error")
@@ -44,7 +48,11 @@ class WorkerProtocolTests(unittest.TestCase):
 
     def test_rejects_download_without_destination(self):
         code, event = self.request(
-            {"version": 1, "action": "download", "url": "https://open.spotify.com/playlist/123"}
+            {
+                "version": 1,
+                "action": "download",
+                "url": "https://open.spotify.com/playlist/30eOhDJsGGMtzE6WHpIpTY",
+            }
         )
         self.assertEqual(code, 2)
         self.assertIn("destination", event["message"])
@@ -54,7 +62,7 @@ class WorkerProtocolTests(unittest.TestCase):
             {
                 "version": 1,
                 "action": "download",
-                "url": "https://open.spotify.com/playlist/123",
+                "url": "https://open.spotify.com/playlist/30eOhDJsGGMtzE6WHpIpTY",
                 "destination": str(WORKER.parent),
                 "preset": "unbounded-custom-arguments",
             }
@@ -62,9 +70,40 @@ class WorkerProtocolTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("preset", event["message"])
 
+    def test_rejects_oversized_request(self):
+        code, event = self.request({"padding": "x" * 20_000})
+        self.assertEqual(code, 2)
+        self.assertIn("too large", event["message"])
+
+    def test_rejects_credentials_ports_and_unicode_ids(self):
+        worker = load_worker_module()
+        for url in [
+            "https://user@open.spotify.com/playlist/30eOhDJsGGMtzE6WHpIpTY",
+            "https://open.spotify.com:443/playlist/30eOhDJsGGMtzE6WHpIpTY",
+            "https://open.spotify.com/playlist/" + "é" * 22,
+        ]:
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                worker.validate_playlist_url(url)
+
+    def test_dependency_output_does_not_corrupt_protocol(self):
+        import contextlib
+        import io
+
+        worker = load_worker_module()
+        protocol = io.StringIO()
+        diagnostics = io.StringIO()
+        worker.PROTOCOL_STDOUT = protocol
+        with contextlib.redirect_stdout(diagnostics):
+            print("dependency progress")
+            worker.emit("complete", failed=0)
+        self.assertEqual(json.loads(protocol.getvalue())["event"], "complete")
+        self.assertIn("dependency progress", diagnostics.getvalue())
+
     def test_missing_dependency_message_names_the_component(self):
         worker = load_worker_module()
-        error = ModuleNotFoundError("No module named 'example_dependency'", name="example_dependency")
+        error = ModuleNotFoundError(
+            "No module named 'example_dependency'", name="example_dependency"
+        )
         self.assertIn("example_dependency", worker.failure_message(error))
 
 
