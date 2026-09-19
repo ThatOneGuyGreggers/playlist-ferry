@@ -135,6 +135,10 @@ final class UpdateManager: ObservableObject {
         return false
     }
 
+    static func supportsArchitecture(_ architecture: String, lipoOutput: String) -> Bool {
+        lipoOutput.split(whereSeparator: { $0.isWhitespace }).contains(Substring(architecture))
+    }
+
     private func prepare(_ update: AvailableUpdate) async throws -> (root: URL, app: URL) {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("playlist-ferry-update-\(UUID().uuidString)", isDirectory: true)
@@ -213,7 +217,7 @@ final class UpdateManager: ObservableObject {
         try run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path])
         let executable = app.appendingPathComponent("Contents/MacOS/PlaylistFerry")
         let architectures = try output("/usr/bin/lipo", ["-archs", executable.path])
-        guard architectures.split(separator: " ").contains(Substring(architecture)) else {
+        guard supportsArchitecture(architecture, lipoOutput: architectures) else {
             throw UpdateError.wrongArchitecture
         }
     }

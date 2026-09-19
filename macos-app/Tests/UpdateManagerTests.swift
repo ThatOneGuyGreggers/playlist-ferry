@@ -11,7 +11,19 @@ struct UpdateManagerTests {
         try expect(!UpdateManager.isNewer("2.0.0", than: "2.0.0"), "Equal versions were treated as newer")
         try expect(!UpdateManager.isNewer("1.9.9", than: "2.0.0"), "Older version was treated as newer")
         try expect(!UpdateManager.isNewer("release", than: "2.0.0"), "Malformed version was accepted")
-        print("All seven update-version checks passed.")
+        try expect(
+            UpdateManager.supportsArchitecture("x86_64", lipoOutput: "x86_64\n"),
+            "Single-architecture lipo output with a newline was rejected"
+        )
+        try expect(
+            UpdateManager.supportsArchitecture("arm64", lipoOutput: "x86_64 arm64\n"),
+            "Universal lipo output with a trailing newline was rejected"
+        )
+        try expect(
+            !UpdateManager.supportsArchitecture("arm64", lipoOutput: "x86_64\n"),
+            "An unsupported architecture was accepted"
+        )
+        print("All ten updater checks passed.")
     }
 
     private static func expect(_ condition: Bool, _ message: String) throws {
