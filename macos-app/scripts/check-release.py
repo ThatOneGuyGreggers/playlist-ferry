@@ -84,6 +84,18 @@ def main() -> None:
             str(binary),
         )
         run(str(binary))
+        updater_binary = root / "UpdateManagerTests"
+        run(
+            "swiftc",
+            "-parse-as-library",
+            str(APP_ROOT / "Swift/UpdateManager.swift"),
+            str(APP_ROOT / "Tests/UpdateManagerTests.swift"),
+            "-module-cache-path",
+            str(args.module_cache),
+            "-o",
+            str(updater_binary),
+        )
+        run(str(updater_binary))
         run("codesign", "--verify", "--deep", "--strict", str(app))
     print(
         "Extracted candidate passed protocol, native lifecycle, audio, and signature checks."

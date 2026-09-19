@@ -21,6 +21,7 @@ The sidebar contains the settings applied when a download starts:
 - **Concurrent downloads** allows 1–8 tracks to download and convert at once; the default is 3. Higher values may finish sooner but use more network bandwidth, CPU, memory, and temporary disk space.
 - **Create Apple Music playlist** writes an ordered UTF-8 `.m3u8` file beside the downloaded tracks, using absolute macOS paths so Apple Music can locate them during import. Turn it off to download audio without creating the playlist file.
 - **Source** identifies the supported inputs: public Spotify playlists, YouTube playlists, and direct YouTube video, Shorts, or Live links. A YouTube `watch` link containing both `v` and `list` parameters resolves the complete playlist.
+- **Check for Updates** checks the latest GitHub release. The app also checks quietly when it opens. When a newer version is available, you can download and install the ZIP built for the Mac's architecture or choose **Later**. Before replacing the installed app, Playlist Ferry verifies the published SHA-256 checksum, bundle identifier, code signature integrity, and executable architecture; the previous app is restored if installation fails.
 
 The main area controls the job:
 
@@ -30,6 +31,8 @@ The main area controls the job:
 - **Refresh Playlist** in the toolbar reloads the current link.
 - **Download** downloads every displayed track using the selected destination, preset, concurrency, and playlist setting. It remains disabled until a preview has loaded and a destination folder is selected. Command-D is its keyboard shortcut.
 - **Cancel** appears while loading or downloading and stops the active worker operation. Escape also cancels.
+
+Automatic updating begins with the first release that includes this feature; version 2.0.0 cannot add the updater to itself. The app must be running from a writable `.app` location. Release builds are currently ad hoc signed, so verification detects corruption but does not provide Apple Developer ID identity or notarization.
 
 ## Preview and track controls
 

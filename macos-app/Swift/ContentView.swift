@@ -49,6 +49,7 @@ private enum YouTubeArtworkChoice: String {
 
 struct ContentView: View {
     @StateObject private var worker = WorkerManager()
+    @StateObject private var updater = UpdateManager()
     @State private var playlistURL = ""
     @State private var destination: URL?
     @State private var preset = AudioPreset.appleUniversal
@@ -83,6 +84,17 @@ struct ContentView: View {
                  ? "Embed each video's thumbnail and save the playlist thumbnail as a separate JPEG, or leave artwork unset."
                  : "Choose whether to embed the video's thumbnail as audio artwork.")
         }
+        .alert(item: $updater.availableUpdate) { update in
+            Alert(
+                title: Text("Playlist Ferry \(update.version) is available"),
+                message: Text("Download, verify, and install the update now? Playlist Ferry will restart when installation finishes."),
+                primaryButton: .default(Text("Download and Install")) {
+                    Task { await updater.install(update) }
+                },
+                secondaryButton: .cancel(Text("Later"))
+            )
+        }
+        .task { await updater.checkForUpdates() }
     }
 
     private var settingsSidebar: some View {
@@ -125,6 +137,21 @@ struct ContentView: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+
+            Section("Updates") {
+                Button {
+                    Task { await updater.checkForUpdates(showCurrentStatus: true) }
+                } label: {
+                    Label(updater.busy ? "Working…" : "Check for Updates", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(updater.busy)
+                if !updater.status.isEmpty {
+                    Text(updater.status)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
         }
         .formStyle(.grouped)
         .navigationTitle("Download Settings")
