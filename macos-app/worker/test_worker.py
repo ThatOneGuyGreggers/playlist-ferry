@@ -88,7 +88,7 @@ class WorkerProtocolTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("true or false", event["message"])
 
-    def test_applies_youtube_thumbnail_choice(self):
+    def test_applies_youtube_artwork_choice(self):
         worker = load_worker_module()
 
         @dataclass
@@ -97,12 +97,47 @@ class WorkerProtocolTests(unittest.TestCase):
 
         song = Song("https://i.ytimg.com/example.jpg")
         self.assertEqual(
-            worker.apply_youtube_thumbnail_choice([song], True)[0].cover_url,
+            worker.apply_youtube_artwork_choice(
+                [song], "video", "https://example.com/playlist.jpg"
+            )[0].cover_url,
+            song.cover_url,
+        )
+        self.assertEqual(
+            worker.apply_youtube_artwork_choice(
+                [song], "both", "https://example.com/playlist.jpg"
+            )[0].cover_url,
             song.cover_url,
         )
         self.assertIsNone(
-            worker.apply_youtube_thumbnail_choice([song], False)[0].cover_url
+            worker.apply_youtube_artwork_choice([song], "none", None)[0].cover_url
         )
+
+    def test_writes_playlist_artwork_without_overwriting(self):
+        worker = load_worker_module()
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self, _limit):
+                return b"\xff\xd8\xff" + b"artwork"
+
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            worker, "urlopen", return_value=Response()
+        ):
+            root = Path(directory)
+            first = worker.write_youtube_playlist_artwork(
+                root, "My/Playlist", "https://example.com/art.jpg"
+            )
+            second = worker.write_youtube_playlist_artwork(
+                root, "My/Playlist", "https://example.com/art.jpg"
+            )
+
+        self.assertEqual(first.name, "My-Playlist artwork.jpg")
+        self.assertEqual(second.name, "My-Playlist artwork 2.jpg")
 
     def test_selects_best_flat_playlist_thumbnail(self):
         worker = load_worker_module()
@@ -160,6 +195,62 @@ class WorkerProtocolTests(unittest.TestCase):
         )
         self.assertEqual(code, 2)
         self.assertIn("thumbnail setting", event["message"])
+
+    def test_rejects_unknown_youtube_artwork_choice(self):
+        code, event = self.request(
+            {
+                "version": 1,
+                "action": "download",
+                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "destination": str(WORKER.parent),
+                "preset": "apple-universal",
+                "youtube_artwork": "unknown",
+            }
+        )
+        self.assertEqual(code, 2)
+        self.assertIn("YouTube artwork", event["message"])
+
+    def test_playlist_artwork_keeps_track_covers_and_saves_playlist_cover(self):
+        import io
+
+        worker = load_worker_module()
+        song = SimpleNamespace(
+            song_id="youtube:video:1",
+            name="Video",
+            artists=["Channel"],
+            duration=60,
+            list_position=1,
+            cover_url="https://example.com/video.jpg",
+        )
+        worker.PROTOCOL_STDOUT = io.StringIO()
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            worker,
+            "load_source",
+            return_value=(
+                {
+                    "name": "Playlist",
+                    "author_name": "Channel",
+                    "cover_url": "https://example.com/playlist.jpg",
+                },
+                [song],
+            ),
+        ), patch.object(worker, "download") as download:
+            worker.handle(
+                {
+                    "version": 1,
+                    "action": "download",
+                    "url": "https://www.youtube.com/playlist?list=PL123456789",
+                    "destination": directory,
+                    "preset": "apple-universal",
+                    "youtube_artwork": "both",
+                }
+            )
+
+        self.assertEqual(download.call_args.args[0][0].cover_url, song.cover_url)
+        self.assertEqual(
+            download.call_args.kwargs["playlist_artwork_url"],
+            "https://example.com/playlist.jpg",
+        )
 
     def test_validates_concurrent_download_count(self):
         worker = load_worker_module()

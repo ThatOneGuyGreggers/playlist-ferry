@@ -41,6 +41,12 @@ private enum AudioPreset: String, CaseIterable, Identifiable {
     }
 }
 
+private enum YouTubeArtworkChoice: String {
+    case video
+    case both
+    case none
+}
+
 struct ContentView: View {
     @StateObject private var worker = WorkerManager()
     @State private var playlistURL = ""
@@ -48,8 +54,9 @@ struct ContentView: View {
     @State private var preset = AudioPreset.appleUniversal
     @State private var createAppleMusicPlaylist = true
     @State private var concurrentDownloads = 3
-    @State private var includeYouTubeThumbnail = true
+    @State private var youtubeArtwork = YouTubeArtworkChoice.video
     @State private var showYouTubeThumbnailPrompt = false
+    @State private var youtubeURLIsPlaylist = false
 
     var body: some View {
         NavigationSplitView {
@@ -61,18 +68,20 @@ struct ContentView: View {
                 .toolbar { toolbarContent }
         }
         .frame(minWidth: 820, minHeight: 560)
-        .alert("Include YouTube thumbnail?", isPresented: $showYouTubeThumbnailPrompt) {
-            Button("Include Thumbnail") {
-                includeYouTubeThumbnail = true
+        .alert("Choose YouTube artwork", isPresented: $showYouTubeThumbnailPrompt) {
+            Button(youtubeURLIsPlaylist ? "Include Track + Playlist Artwork" : "Include Thumbnail") {
+                youtubeArtwork = youtubeURLIsPlaylist ? .both : .video
                 previewSelectedURL()
             }
-            Button("Skip Thumbnail") {
-                includeYouTubeThumbnail = false
+            Button("Skip Artwork") {
+                youtubeArtwork = .none
                 previewSelectedURL()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Choose whether Playlist Ferry should download the YouTube thumbnail and embed it as the audio artwork.")
+            Text(youtubeURLIsPlaylist
+                 ? "Embed each video's thumbnail and save the playlist thumbnail as a separate JPEG, or leave artwork unset."
+                 : "Choose whether to embed the video's thumbnail as audio artwork.")
         }
     }
 
@@ -260,9 +269,10 @@ struct ContentView: View {
         guard canPreview else { return }
         let url = playlistURL.trimmingCharacters(in: .whitespacesAndNewlines)
         if isYouTubeURL(url) {
+            youtubeURLIsPlaylist = isYouTubePlaylistURL(url)
             showYouTubeThumbnailPrompt = true
         } else {
-            includeYouTubeThumbnail = true
+            youtubeArtwork = .video
             worker.preview(url: url)
         }
     }
@@ -282,6 +292,12 @@ struct ContentView: View {
         ].contains(host)
     }
 
+    private func isYouTubePlaylistURL(_ value: String) -> Bool {
+        guard let components = URLComponents(string: value) else { return false }
+        return components.path == "/playlist"
+            || components.queryItems?.contains(where: { $0.name == "list" && !($0.value ?? "").isEmpty }) == true
+    }
+
     private func startDownload() {
         guard canDownload, let destination else { return }
         worker.download(
@@ -290,7 +306,7 @@ struct ContentView: View {
             preset: preset.rawValue,
             createPlaylist: createAppleMusicPlaylist,
             concurrentDownloads: concurrentDownloads,
-            includeYouTubeThumbnail: includeYouTubeThumbnail,
+            youtubeArtwork: youtubeArtwork.rawValue,
             manualURLs: worker.manualURLs
         )
     }

@@ -22,6 +22,7 @@ private struct WorkerEvent: Decodable {
     let id: String?
     let path: String?
     let playlist_path: String?
+    let artwork_path: String?
     let failed: Int?
     let metadata: PlaylistMetadata?
     let songs: [Track]?
@@ -85,7 +86,7 @@ final class WorkerManager: ObservableObject {
         preset: String,
         createPlaylist: Bool,
         concurrentDownloads: Int,
-        includeYouTubeThumbnail: Bool = true,
+        youtubeArtwork: String = "video",
         manualURLs: [String: String]
     ) {
         guard !busy else { return }
@@ -100,7 +101,7 @@ final class WorkerManager: ObservableObject {
                "destination": destination.path, "preset": preset,
                "create_playlist": createPlaylist,
                "concurrent_downloads": concurrentDownloads,
-               "youtube_thumbnail": includeYouTubeThumbnail,
+               "youtube_artwork": youtubeArtwork,
                "manual_urls": manualURLs.filter { !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                    .mapValues { $0.trimmingCharacters(in: .whitespacesAndNewlines) }])
     }
@@ -350,8 +351,12 @@ final class WorkerManager: ObservableObject {
         case "complete":
             retryingTrackID = nil
             if let path = event.playlist_path { playlistPath = URL(fileURLWithPath: path) }
-            if event.playlist_path != nil {
+            if event.playlist_path != nil && event.artwork_path != nil {
+                message = "Finished with \(event.failed ?? 0) failed tracks. Apple Music playlist and YouTube playlist artwork created."
+            } else if event.playlist_path != nil {
                 message = "Finished with \(event.failed ?? 0) failed tracks. Apple Music playlist created."
+            } else if event.artwork_path != nil {
+                message = "Finished with \(event.failed ?? 0) failed tracks. YouTube playlist artwork saved."
             } else {
                 message = "Finished with \(event.failed ?? 0) failed tracks."
             }

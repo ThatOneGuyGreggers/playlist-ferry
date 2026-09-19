@@ -26,7 +26,7 @@ The main area controls the job:
 
 - **Spotify or YouTube URL** accepts a supported public link.
 - **Preview** loads metadata and displays the tracks without downloading audio. Pressing Return in the URL field or Command-Return performs the same action.
-- **YouTube thumbnail prompt** appears before previewing a YouTube source. Choose **Include Thumbnail** to download and embed each video's thumbnail as cover artwork, or **Skip Thumbnail** to leave artwork unset. Spotify artwork behavior is unchanged.
+- **YouTube artwork prompt** appears before previewing a YouTube source. For playlists, **Include Track + Playlist Artwork** embeds each video's thumbnail in its audio file and saves the playlist thumbnail as a separate JPEG beside the downloads. For a direct video, **Include Thumbnail** embeds its thumbnail. **Skip Artwork** leaves artwork unset. Spotify artwork behavior is unchanged.
 - **Refresh Playlist** in the toolbar reloads the current link.
 - **Download** downloads every displayed track using the selected destination, preset, concurrency, and playlist setting. It remains disabled until a preview has loaded and a destination folder is selected. Command-D is its keyboard shortcut.
 - **Cancel** appears while loading or downloading and stops the active worker operation. Escape also cancels.

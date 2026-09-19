@@ -11,6 +11,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from urllib.request import urlopen
 
 MAX_REQUEST_BYTES = 16_384
 MAX_TRACKS = 1_000
@@ -213,13 +214,22 @@ def youtube_options() -> dict:
     return options
 
 
+def stable_youtube_thumbnail_url(url: str) -> str:
+    """Prefer query-free JPEG artwork when a ytimg video ID is available."""
+    parsed = urlparse(url)
+    match = re.fullmatch(r"/vi/([A-Za-z0-9_-]{11})/[^/]+", parsed.path)
+    if parsed.hostname in {"i.ytimg.com", "img.youtube.com"} and match:
+        return f"https://i.ytimg.com/vi/{match.group(1)}/hqdefault.jpg"
+    return url
+
+
 def youtube_thumbnail_url(entry: dict, video_id: str | None = None) -> str | None:
     """Return the best HTTP(S) thumbnail from full or flat yt-dlp metadata."""
     if video_id and re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
         return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
     thumbnail = entry.get("thumbnail")
     if isinstance(thumbnail, str) and thumbnail.startswith(("https://", "http://")):
-        return thumbnail
+        return stable_youtube_thumbnail_url(thumbnail)
     thumbnails = entry.get("thumbnails")
     if not isinstance(thumbnails, list):
         return None
@@ -245,7 +255,7 @@ def youtube_thumbnail_url(entry: dict, video_id: str | None = None) -> str | Non
             dimension(item.get("width")),
         ),
     )
-    return best["url"]
+    return stable_youtube_thumbnail_url(best["url"])
 
 
 def youtube_song(entry: dict, position: int, count: int, list_name: str):
@@ -329,6 +339,7 @@ def load_youtube(url: str):
         "name": name,
         "author_name": author,
         "description": info.get("description"),
+        "cover_url": youtube_thumbnail_url(info),
     }
     return metadata, songs
 
@@ -378,17 +389,40 @@ def prepare_download_song(song, output_format: str):
     return song
 
 
-def apply_youtube_thumbnail_choice(songs: list, include_thumbnail: bool) -> list:
-    """Remove YouTube cover URLs when the user declines embedded artwork."""
-    if include_thumbnail:
+def apply_youtube_artwork_choice(
+    songs: list, artwork: str, playlist_cover_url: object
+) -> list:
+    """Keep per-video artwork unless the user declines all artwork."""
+    if artwork in {"video", "both"}:
         return songs
-    return [replace(song, cover_url=None) for song in songs]
+    if artwork == "none":
+        return [replace(song, cover_url=None) for song in songs]
+    raise ValueError("Choose YouTube artwork or no artwork.")
 
 
 def playlist_filename(name: str) -> str:
     """Return a safe, readable filename for an exported Apple Music playlist."""
     cleaned = re.sub(r"[/:\x00-\x1f]", "-", name).strip(" .")
     return (cleaned or "Playlist Ferry")[:180]
+
+
+def write_youtube_playlist_artwork(
+    destination: Path, name: str, artwork_url: str
+) -> Path:
+    """Download a bounded JPEG copy of the YouTube playlist thumbnail."""
+    output = destination / f"{playlist_filename(name)} artwork.jpg"
+    suffix = 2
+    while output.exists():
+        output = destination / f"{playlist_filename(name)} artwork {suffix}.jpg"
+        suffix += 1
+    with urlopen(artwork_url, timeout=20) as response:
+        artwork = response.read(10_485_761)
+    if len(artwork) > 10_485_760 or not artwork.startswith(b"\xff\xd8\xff"):
+        raise ValueError("YouTube did not return valid JPEG playlist artwork.")
+    temporary = output.with_suffix(".jpg.tmp")
+    temporary.write_bytes(artwork)
+    temporary.replace(output)
+    return output
 
 
 def song_position(song) -> int:
@@ -486,6 +520,7 @@ def download(
     concurrent_downloads: int,
     manual_urls: dict[str, str],
     playlist_to_update: Path | None = None,
+    playlist_artwork_url: str | None = None,
 ) -> None:
     """Download tracks concurrently with isolated progress and failures."""
     from spotdl.download.downloader import Downloader
@@ -568,6 +603,7 @@ def download(
     finally:
         downloader.loop.close()
     playlist_path = None
+    artwork_path = None
     if create_playlist and completed:
         playlist_path = write_apple_music_playlist(
             destination,
@@ -579,11 +615,16 @@ def download(
         playlist_path = update_apple_music_playlist(
             playlist_to_update, destination, repaired_song, repaired_path
         )
+    if playlist_artwork_url is not None and completed:
+        artwork_path = write_youtube_playlist_artwork(
+            destination, playlist_name, playlist_artwork_url
+        )
     emit(
         "complete",
         total=len(songs),
         failed=failures,
         playlist_path=str(playlist_path) if playlist_path else None,
+        artwork_path=str(artwork_path) if artwork_path else None,
     )
 
 
@@ -599,7 +640,7 @@ def handle(request: dict) -> None:
     preset_name: object = "apple-universal"
     create_playlist = True
     concurrent_downloads = 3
-    include_youtube_thumbnail = True
+    youtube_artwork = "video"
     raw_manual_urls: object = {}
     if action in ("download", "retry_track"):
         raw_destination = request.get("destination")
@@ -619,16 +660,26 @@ def handle(request: dict) -> None:
             concurrent_downloads = validate_concurrent_downloads(
                 request.get("concurrent_downloads", 3)
             )
-            include_youtube_thumbnail = request.get("youtube_thumbnail", True)
-            if not isinstance(include_youtube_thumbnail, bool):
-                raise ValueError(
-                    "The YouTube thumbnail setting must be true or false."
-                )
+            youtube_artwork = request.get("youtube_artwork")
+            if youtube_artwork is None:
+                include_thumbnail = request.get("youtube_thumbnail", True)
+                if not isinstance(include_thumbnail, bool):
+                    raise ValueError(
+                        "The YouTube thumbnail setting must be true or false."
+                    )
+                youtube_artwork = "video" if include_thumbnail else "none"
+            if youtube_artwork not in {"video", "both", "none"}:
+                raise ValueError("Choose YouTube artwork or no artwork.")
             raw_manual_urls = request.get("manual_urls", {})
 
     metadata, songs = load_source(source, url)
     if action == "download" and source == "youtube":
-        songs = apply_youtube_thumbnail_choice(songs, include_youtube_thumbnail)
+        playlist_cover_url = (
+            metadata.get("cover_url") if isinstance(metadata, dict) else None
+        )
+        songs = apply_youtube_artwork_choice(
+            songs, youtube_artwork, playlist_cover_url
+        )
     if action != "retry_track":
         emit("playlist", metadata=metadata, songs=[song_data(song) for song in songs])
     if action == "retry_track":
@@ -675,6 +726,12 @@ def handle(request: dict) -> None:
             create_playlist,
             concurrent_downloads,
             manual_urls,
+            playlist_artwork_url=(
+                playlist_cover_url
+                if youtube_artwork == "both"
+                and isinstance(playlist_cover_url, str)
+                else None
+            ),
         )
 
 
