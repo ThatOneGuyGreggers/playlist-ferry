@@ -46,6 +46,8 @@ struct ContentView: View {
     @State private var playlistURL = ""
     @State private var destination: URL?
     @State private var preset = AudioPreset.appleUniversal
+    @State private var createAppleMusicPlaylist = true
+    @State private var concurrentDownloads = 3
 
     var body: some View {
         NavigationSplitView {
@@ -83,11 +85,19 @@ struct ContentView: View {
                 .labelsHidden()
                 Text(preset.specification).font(.callout).fontWeight(.medium)
                 Text(preset.detail).font(.caption).foregroundStyle(.secondary)
+                Stepper("Concurrent downloads: \(concurrentDownloads)", value: $concurrentDownloads, in: 1...8)
+                Text("Higher values finish sooner but use more bandwidth and processing power.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Toggle("Create Apple Music playlist", isOn: $createAppleMusicPlaylist)
+                Text("Creates an importable .m3u8 playlist beside the downloaded tracks.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Source") {
-                Label("Track details from Spotify", systemImage: "music.note.list")
-                Label("Matched audio from YouTube", systemImage: "play.rectangle")
+                Label("Spotify playlists", systemImage: "music.note.list")
+                Label("YouTube playlists and videos", systemImage: "play.rectangle")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -115,10 +125,10 @@ struct ContentView: View {
                 Image(systemName: "link")
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                TextField("Spotify playlist URL", text: $playlistURL)
+                TextField("Spotify or YouTube URL", text: $playlistURL)
                     .textFieldStyle(.plain)
                     .onSubmit(previewPlaylist)
-                    .accessibilityHint("Enter a public Spotify playlist link")
+                    .accessibilityHint("Enter a public Spotify playlist, YouTube playlist, or YouTube video link")
                 Button("Preview", action: previewPlaylist)
                     .buttonStyle(.borderedProminent)
                     .disabled(!canPreview)
@@ -126,7 +136,7 @@ struct ContentView: View {
             }
             .padding(6)
         } label: {
-            Label("Spotify Playlist", systemImage: "music.note")
+            Label("Playlist or Video", systemImage: "music.note")
         }
     }
 
@@ -135,7 +145,7 @@ struct ContentView: View {
         if worker.busy {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text(worker.tracks.isEmpty ? "Loading playlist…" : "Downloading playlist…")
+                Text(worker.tracks.isEmpty ? "Loading source…" : "Downloading…")
                 Spacer()
                 Button("Cancel", role: .cancel) { worker.cancel() }
                     .keyboardShortcut(.cancelAction)
@@ -158,7 +168,7 @@ struct ContentView: View {
                 }
                 Spacer()
                 Button(action: startDownload) {
-                    Label("Download Playlist", systemImage: "arrow.down.circle.fill")
+                    Label("Download", systemImage: "arrow.down.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -167,7 +177,16 @@ struct ContentView: View {
             }
 
             List(worker.tracks) { track in
-                TrackRow(track: track, status: worker.statuses[track.id])
+                TrackRow(
+                    track: track,
+                    status: worker.statuses[track.id],
+                    manualURL: Binding(
+                        get: { worker.manualURL(for: track.id) },
+                        set: { worker.setManualURL($0, for: track.id) }
+                    ),
+                    canRetry: destination != nil && !worker.busy,
+                    retry: { retryTrack(track) }
+                )
             }
             .listStyle(.inset)
             .overlay {
@@ -186,8 +205,8 @@ struct ContentView: View {
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            Text("Add a Spotify playlist").font(.title2).fontWeight(.semibold)
-            Text("Paste a public playlist link above to review its tracks before downloading.")
+            Text("Add a playlist or video").font(.title2).fontWeight(.semibold)
+            Text("Paste a public Spotify playlist or YouTube link above to review it before downloading.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 390)
@@ -203,10 +222,10 @@ struct ContentView: View {
                 Label("Refresh Playlist", systemImage: "arrow.clockwise")
             }
             .disabled(!canPreview)
-            .help("Reload the playlist from Spotify")
+            .help("Reload the playlist or video")
 
             Button(action: startDownload) {
-                Label("Download Playlist", systemImage: "arrow.down.circle")
+                Label("Download", systemImage: "arrow.down.circle")
             }
             .disabled(!canDownload)
             .help("Download all tracks with the selected audio preset")
@@ -232,13 +251,29 @@ struct ContentView: View {
         worker.download(
             url: playlistURL.trimmingCharacters(in: .whitespacesAndNewlines),
             destination: destination,
+            preset: preset.rawValue,
+            createPlaylist: createAppleMusicPlaylist,
+            concurrentDownloads: concurrentDownloads,
+            manualURLs: worker.manualURLs
+        )
+    }
+
+    private func retryTrack(_ track: Track) {
+        guard let destination else { return }
+        let url = worker.manualURL(for: track.id)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !url.isEmpty else { return }
+        worker.retryTrack(
+            track.id,
+            url: url,
+            destination: destination,
             preset: preset.rawValue
         )
     }
 
     private func chooseFolder() {
         let panel = NSOpenPanel()
-        panel.title = "Choose where to save this playlist"
+        panel.title = "Choose where to save these tracks"
         panel.prompt = "Choose"
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -250,6 +285,9 @@ struct ContentView: View {
 private struct TrackRow: View {
     let track: Track
     let status: String?
+    @Binding var manualURL: String
+    let canRetry: Bool
+    let retry: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -257,12 +295,27 @@ private struct TrackRow: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 28, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(track.name).lineLimit(1)
                 Text(track.artists.joined(separator: ", "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if status?.hasPrefix("Failed") == true {
+                    HStack {
+                        TextField("Direct YouTube URL", text: $manualURL)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.caption)
+                            .accessibilityLabel("Manual YouTube match for \(track.name)")
+                        Button("Re-download", action: retry)
+                            .disabled(
+                                !canRetry
+                                    || manualURL.trimmingCharacters(
+                                        in: .whitespacesAndNewlines
+                                    ).isEmpty
+                            )
+                    }
+                }
             }
             Spacer()
             Text(durationText).font(.caption).monospacedDigit().foregroundStyle(.secondary)
@@ -272,7 +325,6 @@ private struct TrackRow: View {
                 .frame(minWidth: 90, alignment: .leading)
         }
         .padding(.vertical, 3)
-        .accessibilityElement(children: .combine)
     }
 
     private var durationText: String {

@@ -19,7 +19,10 @@ cp "${BINARY}" "${APP}/Contents/MacOS/PlaylistFerry"
 cp "${APP_ROOT}/Assets/playlist-ferry.icns" "${APP}/Contents/Resources/PlaylistFerry.icns"
 cp "${APP_ROOT}/worker/worker.py" "${APP}/Contents/Resources/worker.py"
 cp -R "${PROJECT_ROOT}/spotify-downloader/spotdl" "${APP}/Contents/Resources/spotify-downloader/spotdl"
-
+if [[ ! -x "${APP_ROOT}/.venv/bin/python" ]]; then
+    print -u2 "Development Python runtime not found: ${APP_ROOT}/.venv/bin/python"
+    exit 1
+fi
 cat > "${APP}/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -32,15 +35,22 @@ cat > "${APP}/Contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key><string>Playlist Ferry</string>
     <key>CFBundleIconFile</key><string>PlaylistFerry</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>2.0.0</string>
+    <key>CFBundleVersion</key><string>2</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
 
 plutil -lint "${APP}/Contents/Info.plist"
-# Finder can attach metadata after a local launch; remove it before signing a fresh bundle.
-xattr -cr "${APP}"
-codesign --force --sign - "${APP}"
+# Codex and Finder can attach protected provenance metadata inside the workspace.
+# Stage a metadata-free copy so codesign never sees those extended attributes.
+SIGNING_STAGE=$(mktemp -d /tmp/playlist-ferry-sign.XXXXXX)
+trap 'rm -rf "${SIGNING_STAGE}"' EXIT
+ditto --norsrc --noextattr "${APP}" "${SIGNING_STAGE}/Playlist Ferry.app"
+codesign --force --deep --sign - "${SIGNING_STAGE}/Playlist Ferry.app"
+codesign --verify --deep "${SIGNING_STAGE}/Playlist Ferry.app"
+rm -rf "${APP}"
+ditto --norsrc --noextattr "${SIGNING_STAGE}/Playlist Ferry.app" "${APP}"
+codesign --verify --deep "${APP}"
 print "Test app: ${APP}"

@@ -10,7 +10,8 @@ struct WorkerManagerTests {
         try await tests.testCanceledJobCannotOverwriteNewPlaylist()
         try await tests.testWorkerExitStopsChildHoldingProtocolPipe()
         try await tests.testUnpreviewedPlaylistCannotDownload()
-        print("All five native worker regression checks passed.")
+        try await tests.testSymlinkedPythonRuntimeLaunches()
+        print("All six native worker regression checks passed.")
     }
 
     private func expect(_ condition: Bool, _ message: String) throws {
@@ -50,7 +51,7 @@ struct WorkerManagerTests {
         defer { try? FileManager.default.removeItem(at: root) }
         worker.preview(url: "fixture")
         try await finish(worker)
-        worker.download(url: "fixture", destination: root, preset: "apple-universal")
+        worker.download(url: "fixture", destination: root, preset: "apple-universal", createPlaylist: true, concurrentDownloads: 3, manualURLs: [:])
         try await finish(worker)
         try expect(worker.message?.contains("without completing") == true, "Missing completion was not reported")
     }
@@ -99,9 +100,30 @@ struct WorkerManagerTests {
     func testUnpreviewedPlaylistCannotDownload() async throws {
         let (worker, root) = try manager("print('should not start', flush=True)\n")
         defer { try? FileManager.default.removeItem(at: root) }
-        worker.download(url: "different", destination: root, preset: "apple-universal")
+        worker.download(url: "different", destination: root, preset: "apple-universal", createPlaylist: true, concurrentDownloads: 3, manualURLs: [:])
         try expect(!worker.busy, "Unpreviewed playlist started a worker")
         try expect(worker.message?.contains("Preview") == true, "Missing preview instruction")
+    }
+
+    @MainActor
+    func testSymlinkedPythonRuntimeLaunches() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let python = root.appendingPathComponent("python")
+        try FileManager.default.createSymbolicLink(
+            at: python, withDestinationURL: URL(fileURLWithPath: "/usr/local/bin/python3")
+        )
+        let script = root.appendingPathComponent("worker.py")
+        try "print('{\"event\":\"playlist\",\"metadata\":{\"name\":\"symlink\",\"author_name\":\"fixture\"},\"songs\":[]}', flush=True)\n"
+            .write(to: script, atomically: true, encoding: .utf8)
+        let worker = WorkerManager(python: python, script: script)
+        worker.preview(url: "fixture")
+        try await finish(worker)
+        try expect(
+            worker.playlist?.name == "symlink",
+            "Symlinked Python runtime did not launch: \(worker.message ?? "no message")"
+        )
     }
 
 }
