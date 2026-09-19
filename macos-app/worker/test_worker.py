@@ -104,6 +104,49 @@ class WorkerProtocolTests(unittest.TestCase):
             worker.apply_youtube_thumbnail_choice([song], False)[0].cover_url
         )
 
+    def test_selects_best_flat_playlist_thumbnail(self):
+        worker = load_worker_module()
+        entry = {
+            "thumbnail": None,
+            "thumbnails": [
+                {"url": "https://example.com/small.jpg", "width": 168, "height": 94},
+                {"url": "https://example.com/large.jpg", "width": 336, "height": 188},
+                {"url": "file:///tmp/not-allowed.jpg", "width": 999, "height": 999},
+            ],
+        }
+
+        self.assertEqual(
+            worker.youtube_thumbnail_url(entry),
+            "https://example.com/large.jpg",
+        )
+
+    def test_uses_stable_jpeg_thumbnail_for_youtube_video_id(self):
+        worker = load_worker_module()
+        self.assertEqual(
+            worker.youtube_thumbnail_url(
+                {
+                    "thumbnail":
+                        "https://i.ytimg.com/vi/artPgvlOtVU/hqdefault.jpg?format=webp"
+                },
+                "artPgvlOtVU",
+            ),
+            "https://i.ytimg.com/vi/artPgvlOtVU/hqdefault.jpg",
+        )
+
+    def test_prefers_direct_video_thumbnail_field(self):
+        worker = load_worker_module()
+        self.assertEqual(
+            worker.youtube_thumbnail_url(
+                {
+                    "thumbnail": "https://i.ytimg.com/direct.jpg",
+                    "thumbnails": [
+                        {"url": "https://i.ytimg.com/alternate.jpg", "width": 999}
+                    ],
+                }
+            ),
+            "https://i.ytimg.com/direct.jpg",
+        )
+
     def test_rejects_non_boolean_youtube_thumbnail_setting(self):
         code, event = self.request(
             {

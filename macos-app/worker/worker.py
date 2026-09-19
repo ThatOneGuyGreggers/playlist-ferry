@@ -213,6 +213,41 @@ def youtube_options() -> dict:
     return options
 
 
+def youtube_thumbnail_url(entry: dict, video_id: str | None = None) -> str | None:
+    """Return the best HTTP(S) thumbnail from full or flat yt-dlp metadata."""
+    if video_id and re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
+        return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+    thumbnail = entry.get("thumbnail")
+    if isinstance(thumbnail, str) and thumbnail.startswith(("https://", "http://")):
+        return thumbnail
+    thumbnails = entry.get("thumbnails")
+    if not isinstance(thumbnails, list):
+        return None
+    candidates = [
+        item
+        for item in thumbnails
+        if isinstance(item, dict)
+        and isinstance(item.get("url"), str)
+        and item["url"].startswith(("https://", "http://"))
+    ]
+    if not candidates:
+        return None
+
+    def dimension(value: object) -> float:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        return 0
+
+    best = max(
+        candidates,
+        key=lambda item: (
+            dimension(item.get("width")) * dimension(item.get("height")),
+            dimension(item.get("width")),
+        ),
+    )
+    return best["url"]
+
+
 def youtube_song(entry: dict, position: int, count: int, list_name: str):
     """Translate yt-dlp metadata into the song shape used by the downloader."""
     from spotdl.types.song import Song
@@ -231,7 +266,7 @@ def youtube_song(entry: dict, position: int, count: int, list_name: str):
     if not isinstance(webpage_url, str) or not webpage_url.startswith("http"):
         webpage_url = f"https://www.youtube.com/watch?v={video_id}"
     upload_date = str(entry.get("upload_date") or "")
-    thumbnail = entry.get("thumbnail")
+    thumbnail = youtube_thumbnail_url(entry, video_id)
     return Song(
         name=title,
         artists=[channel],
@@ -253,7 +288,7 @@ def youtube_song(entry: dict, position: int, count: int, list_name: str):
         publisher=channel,
         url=webpage_url,
         isrc="",
-        cover_url=thumbnail if isinstance(thumbnail, str) else None,
+        cover_url=thumbnail,
         copyright_text=None,
         download_url=webpage_url,
         list_name=list_name,
