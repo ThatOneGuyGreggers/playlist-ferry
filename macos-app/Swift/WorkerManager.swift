@@ -85,6 +85,7 @@ final class WorkerManager: ObservableObject {
         preset: String,
         createPlaylist: Bool,
         concurrentDownloads: Int,
+        includeYouTubeThumbnail: Bool = true,
         manualURLs: [String: String]
     ) {
         guard !busy else { return }
@@ -99,6 +100,7 @@ final class WorkerManager: ObservableObject {
                "destination": destination.path, "preset": preset,
                "create_playlist": createPlaylist,
                "concurrent_downloads": concurrentDownloads,
+               "youtube_thumbnail": includeYouTubeThumbnail,
                "manual_urls": manualURLs.filter { !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                    .mapValues { $0.trimmingCharacters(in: .whitespacesAndNewlines) }])
     }

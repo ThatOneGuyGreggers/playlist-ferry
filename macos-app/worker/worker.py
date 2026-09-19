@@ -343,6 +343,13 @@ def prepare_download_song(song, output_format: str):
     return song
 
 
+def apply_youtube_thumbnail_choice(songs: list, include_thumbnail: bool) -> list:
+    """Remove YouTube cover URLs when the user declines embedded artwork."""
+    if include_thumbnail:
+        return songs
+    return [replace(song, cover_url=None) for song in songs]
+
+
 def playlist_filename(name: str) -> str:
     """Return a safe, readable filename for an exported Apple Music playlist."""
     cleaned = re.sub(r"[/:\x00-\x1f]", "-", name).strip(" .")
@@ -557,6 +564,7 @@ def handle(request: dict) -> None:
     preset_name: object = "apple-universal"
     create_playlist = True
     concurrent_downloads = 3
+    include_youtube_thumbnail = True
     raw_manual_urls: object = {}
     if action in ("download", "retry_track"):
         raw_destination = request.get("destination")
@@ -576,9 +584,16 @@ def handle(request: dict) -> None:
             concurrent_downloads = validate_concurrent_downloads(
                 request.get("concurrent_downloads", 3)
             )
+            include_youtube_thumbnail = request.get("youtube_thumbnail", True)
+            if not isinstance(include_youtube_thumbnail, bool):
+                raise ValueError(
+                    "The YouTube thumbnail setting must be true or false."
+                )
             raw_manual_urls = request.get("manual_urls", {})
 
     metadata, songs = load_source(source, url)
+    if action == "download" and source == "youtube":
+        songs = apply_youtube_thumbnail_choice(songs, include_youtube_thumbnail)
     if action != "retry_track":
         emit("playlist", metadata=metadata, songs=[song_data(song) for song in songs])
     if action == "retry_track":

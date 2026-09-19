@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -86,6 +87,36 @@ class WorkerProtocolTests(unittest.TestCase):
         )
         self.assertEqual(code, 2)
         self.assertIn("true or false", event["message"])
+
+    def test_applies_youtube_thumbnail_choice(self):
+        worker = load_worker_module()
+
+        @dataclass
+        class Song:
+            cover_url: str | None
+
+        song = Song("https://i.ytimg.com/example.jpg")
+        self.assertEqual(
+            worker.apply_youtube_thumbnail_choice([song], True)[0].cover_url,
+            song.cover_url,
+        )
+        self.assertIsNone(
+            worker.apply_youtube_thumbnail_choice([song], False)[0].cover_url
+        )
+
+    def test_rejects_non_boolean_youtube_thumbnail_setting(self):
+        code, event = self.request(
+            {
+                "version": 1,
+                "action": "download",
+                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "destination": str(WORKER.parent),
+                "preset": "apple-universal",
+                "youtube_thumbnail": "yes",
+            }
+        )
+        self.assertEqual(code, 2)
+        self.assertIn("thumbnail setting", event["message"])
 
     def test_validates_concurrent_download_count(self):
         worker = load_worker_module()

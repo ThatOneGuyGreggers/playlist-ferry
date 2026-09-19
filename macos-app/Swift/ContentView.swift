@@ -48,6 +48,8 @@ struct ContentView: View {
     @State private var preset = AudioPreset.appleUniversal
     @State private var createAppleMusicPlaylist = true
     @State private var concurrentDownloads = 3
+    @State private var includeYouTubeThumbnail = true
+    @State private var showYouTubeThumbnailPrompt = false
 
     var body: some View {
         NavigationSplitView {
@@ -59,6 +61,19 @@ struct ContentView: View {
                 .toolbar { toolbarContent }
         }
         .frame(minWidth: 820, minHeight: 560)
+        .alert("Include YouTube thumbnail?", isPresented: $showYouTubeThumbnailPrompt) {
+            Button("Include Thumbnail") {
+                includeYouTubeThumbnail = true
+                previewSelectedURL()
+            }
+            Button("Skip Thumbnail") {
+                includeYouTubeThumbnail = false
+                previewSelectedURL()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose whether Playlist Ferry should download the YouTube thumbnail and embed it as the audio artwork.")
+        }
     }
 
     private var settingsSidebar: some View {
@@ -243,7 +258,28 @@ struct ContentView: View {
 
     private func previewPlaylist() {
         guard canPreview else { return }
+        let url = playlistURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if isYouTubeURL(url) {
+            showYouTubeThumbnailPrompt = true
+        } else {
+            includeYouTubeThumbnail = true
+            worker.preview(url: url)
+        }
+    }
+
+    private func previewSelectedURL() {
+        guard canPreview else { return }
         worker.preview(url: playlistURL.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private func isYouTubeURL(_ value: String) -> Bool {
+        guard let host = URLComponents(string: value)?.host?.lowercased() else {
+            return false
+        }
+        return [
+            "youtu.be", "youtube.com", "www.youtube.com",
+            "m.youtube.com", "music.youtube.com",
+        ].contains(host)
     }
 
     private func startDownload() {
@@ -254,6 +290,7 @@ struct ContentView: View {
             preset: preset.rawValue,
             createPlaylist: createAppleMusicPlaylist,
             concurrentDownloads: concurrentDownloads,
+            includeYouTubeThumbnail: includeYouTubeThumbnail,
             manualURLs: worker.manualURLs
         )
     }
