@@ -338,6 +338,11 @@ def song_position(song) -> int:
     )
 
 
+def apple_music_track_path(path: Path) -> str:
+    """Return an absolute macOS path Apple Music can resolve during import."""
+    return str(path.expanduser().resolve()).replace("\n", " ")
+
+
 def write_apple_music_playlist(
     destination: Path, name: str, completed: list[tuple[object, Path]]
 ) -> Path:
@@ -355,11 +360,7 @@ def write_apple_music_playlist(
         lines.append(f"#PLAYLIST-FERRY-POSITION:{position}")
         label = f"{', '.join(song.artists)} - {song.name}".replace("\n", " ")
         lines.append(f"#EXTINF:{max(0, int(song.duration))},{label}")
-        try:
-            playlist_path = path.resolve().relative_to(destination.resolve())
-        except ValueError:
-            playlist_path = path.resolve()
-        lines.append(str(playlist_path).replace("\n", " "))
+        lines.append(apple_music_track_path(path))
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return output
 
@@ -398,14 +399,10 @@ def update_apple_music_playlist(
 
     position = song_position(song)
     label = f"{', '.join(song.artists)} - {song.name}".replace("\n", " ")
-    try:
-        relative_path = track_path.resolve().relative_to(destination)
-    except ValueError:
-        relative_path = track_path.resolve()
     replacement = [
         f"#PLAYLIST-FERRY-POSITION:{position}",
         f"#EXTINF:{max(0, int(song.duration))},{label}",
-        str(relative_path).replace("\n", " "),
+        apple_music_track_path(track_path),
     ]
     blocks = [(item_position, block) for item_position, block in blocks if item_position != position]
     blocks.append((position, replacement))

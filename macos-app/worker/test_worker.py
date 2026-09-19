@@ -223,10 +223,10 @@ class WorkerProtocolTests(unittest.TestCase):
                     "#EXTM3U",
                     "#PLAYLIST-FERRY-POSITION:1",
                     "#EXTINF:61,Artist A - First",
-                    "First.m4a",
+                    str(first.resolve()),
                     "#PLAYLIST-FERRY-POSITION:2",
                     "#EXTINF:122,Artist B - Second",
-                    "Second.m4a",
+                    str(second.resolve()),
                 ],
             )
             repaired = root / "Second repaired.m4a"
@@ -235,12 +235,31 @@ class WorkerProtocolTests(unittest.TestCase):
                 playlist, root, songs[1][0], repaired
             )
             repaired_lines = playlist.read_text(encoding="utf-8").splitlines()
-            self.assertIn("Second repaired.m4a", repaired_lines)
-            self.assertNotIn("Second.m4a", repaired_lines)
+            self.assertIn(str(repaired.resolve()), repaired_lines)
+            self.assertNotIn(str(second.resolve()), repaired_lines)
             self.assertLess(
-                repaired_lines.index("First.m4a"),
-                repaired_lines.index("Second repaired.m4a"),
+                repaired_lines.index(str(first.resolve())),
+                repaired_lines.index(str(repaired.resolve())),
             )
+
+    def test_apple_music_playlist_uses_absolute_paths_with_spaces(self):
+        worker = load_worker_module()
+        with tempfile.TemporaryDirectory(prefix="Playlist Ferry ") as directory:
+            root = Path(directory)
+            track = root / "Artist - Track name.m4a"
+            track.touch()
+            song = SimpleNamespace(
+                artists=["Artist"], name="Track name", duration=90,
+                list_position=1,
+            )
+
+            playlist = worker.write_apple_music_playlist(
+                root, "Path Test", [(song, track)]
+            )
+
+            lines = playlist.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(lines[-1], str(track.resolve()))
+            self.assertTrue(lines[-1].startswith("/"))
 
     def test_retry_downloads_only_the_selected_track(self):
         import io

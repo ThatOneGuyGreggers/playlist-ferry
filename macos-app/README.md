@@ -21,7 +21,7 @@ The app offers bounded output presets instead of exposing raw FFmpeg arguments:
 
 All presets embed spotDL's supported metadata and artwork. ALAC is omitted because converting a lossy YouTube source to lossless audio would increase file size without restoring audio quality.
 
-The **Create Apple Music playlist** option writes an ordered UTF-8 extended M3U (`.m3u8`) file in the destination folder. Import that file into Apple Music to create a playlist referencing the downloaded tracks. Existing playlist files are preserved; repeated downloads receive a numbered filename.
+The **Create Apple Music playlist** option writes an ordered UTF-8 extended M3U (`.m3u8`) file in the destination folder. Its entries use absolute macOS paths so Apple Music can locate and import the downloaded tracks. Existing playlist files are preserved; repeated downloads receive a numbered filename.
 
 The concurrent-download control allows 1–8 tracks to download and convert at once; the default is 3. Higher values can finish large playlists sooner, but consume more network bandwidth, CPU, memory, and temporary disk space.
 
