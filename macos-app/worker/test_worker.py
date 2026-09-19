@@ -126,6 +126,20 @@ class WorkerProtocolTests(unittest.TestCase):
                 self.assertEqual(source, "youtube")
                 self.assertEqual(validated, url)
 
+    def test_watch_link_with_playlist_resolves_the_playlist(self):
+        worker = load_worker_module()
+        source, validated = worker.validate_source_url(
+            "https://www.youtube.com/watch?v=artPgvlOtVU"
+            "&list=PLyxgmM4B5YzTSFAzp4wUGiIVyxxpWCfOz"
+        )
+
+        self.assertEqual(source, "youtube")
+        self.assertEqual(
+            validated,
+            "https://www.youtube.com/playlist?list="
+            "PLyxgmM4B5YzTSFAzp4wUGiIVyxxpWCfOz",
+        )
+
     def test_rejects_lookalike_and_malformed_youtube_urls(self):
         worker = load_worker_module()
         fixtures = [

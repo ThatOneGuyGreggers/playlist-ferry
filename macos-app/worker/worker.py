@@ -94,6 +94,7 @@ def validate_source_url(value: object) -> tuple[str, str]:
     query = parse_qs(parsed.query)
     parts = parsed.path.strip("/").split("/")
     valid_youtube = False
+    normalized_url = value
     if host == "youtu.be":
         valid_youtube = len(parts) == 1 and bool(parts[0])
     elif host in youtube_hosts:
@@ -102,9 +103,28 @@ def validate_source_url(value: object) -> tuple[str, str]:
             or (parsed.path == "/playlist" and bool(query.get("list")))
             or (len(parts) == 2 and parts[0] in {"shorts", "live"} and bool(parts[1]))
         )
+        # YouTube share links for playlist items use /watch with both v and list.
+        # Give the playlist identifier precedence so yt-dlp cannot interpret the
+        # same input as only the selected video.
+        if parsed.path == "/watch" and query.get("v") and query.get("list"):
+            playlist_id = query["list"][0]
+            if (
+                not playlist_id
+                or len(playlist_id) > 150
+                or not playlist_id.isascii()
+                or any(
+                    character
+                    not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+                    for character in playlist_id
+                )
+            ):
+                raise ValueError("Enter a valid YouTube playlist URL.")
+            normalized_url = (
+                "https://www.youtube.com/playlist?list=" + playlist_id
+            )
     if not valid_youtube:
         raise ValueError("Enter a valid YouTube video or playlist URL.")
-    return "youtube", value
+    return "youtube", normalized_url
 
 
 def validate_playlist_url(value: object) -> str:

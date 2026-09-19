@@ -20,7 +20,7 @@ The sidebar contains the settings applied when a download starts:
   - **Older iPod MP3** creates 128 kbps `.mp3` files at 44.1 kHz for early or MP3-focused iPod libraries.
 - **Concurrent downloads** allows 1–8 tracks to download and convert at once; the default is 3. Higher values may finish sooner but use more network bandwidth, CPU, memory, and temporary disk space.
 - **Create Apple Music playlist** writes an ordered UTF-8 `.m3u8` file beside the downloaded tracks, using absolute macOS paths so Apple Music can locate them during import. Turn it off to download audio without creating the playlist file.
-- **Source** identifies the supported inputs: public Spotify playlists, YouTube playlists, and direct YouTube video, Shorts, or Live links.
+- **Source** identifies the supported inputs: public Spotify playlists, YouTube playlists, and direct YouTube video, Shorts, or Live links. A YouTube `watch` link containing both `v` and `list` parameters resolves the complete playlist.
 
 The main area controls the job:
 

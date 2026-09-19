@@ -1,6 +1,6 @@
 # Playlist Ferry macOS app
 
-This directory contains a SwiftUI front end and a Python worker for public Spotify playlists, YouTube playlists, and direct YouTube video links. The 2.0.0 release includes its Python runtime and media tools; the debug build uses local development dependencies.
+This directory contains a SwiftUI front end and a Python worker for public Spotify playlists, YouTube playlists, and direct YouTube video links. YouTube `watch` links that include a `list` parameter resolve the complete playlist. The 2.0.0 release includes its Python runtime and media tools; the debug build uses local development dependencies.
 
 The native interface follows the project-specific [UI design guidance](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/UI_DESIGN), derived from the referenced Apple Human Interface Guidelines summary.
 
