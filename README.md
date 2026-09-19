@@ -4,20 +4,7 @@ A SwiftUI app and Python worker for previewing public Spotify playlists, YouTube
 
 Version 2.0.0 adds direct YouTube videos and playlists, Apple Music-compatible playlist exports, configurable concurrent downloads, and per-track manual YouTube repair. Release bundles include Python, FFmpeg, FFprobe, and Deno and are tested on Intel and Apple Silicon. They are ad hoc signed, so macOS may require manual approval in Privacy & Security.
 
-## Get started
-
-Clone this repository with its pinned spotDL dependency:
-
-```sh
-git clone --recurse-submodules https://github.com/ThatOneGuyGreggers/playlist-ferry.git
-cd playlist-ferry
-```
-
-For an existing clone, run `git submodule update --init --recursive`.
-
-Follow the [build instructions](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/BUILDING) to run from source, create a local test bundle, or package a portable release. See the [development plan](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/MACOS_APP_PLAN) for remaining work and the [changelog](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CHANGELOG) for changes.
-
-Project documentation lives in the [Wiki](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki). The Wiki also contains the [code review](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CODE_REVIEW).
+Project documentation lives in the [Wiki](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki), including [build instructions](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/BUILDING), the [development plan](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/MACOS_APP_PLAN), [changelog](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CHANGELOG), and [code review](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CODE_REVIEW).
 
 ## References and acknowledgments
 
