@@ -15,7 +15,7 @@ cd playlist-ferry
 
 For an existing clone, run `git submodule update --init --recursive`.
 
-Follow the [app setup and build instructions](macos-app/README.md) to run from source or create a local test bundle. See the [development plan](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/MACOS_APP_PLAN) for remaining work and the [changelog](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CHANGELOG) for changes.
+Follow the [build instructions](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/BUILDING) to run from source, create a local test bundle, or package a portable release. See the [development plan](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/MACOS_APP_PLAN) for remaining work and the [changelog](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CHANGELOG) for changes.
 
 Project documentation lives in the [Wiki](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki). The Wiki also contains the [code review](https://github.com/ThatOneGuyGreggers/playlist-ferry/wiki/CODE_REVIEW).
 
