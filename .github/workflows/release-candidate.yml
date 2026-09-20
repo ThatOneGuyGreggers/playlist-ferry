@@ -33,9 +33,9 @@ jobs:
           --runtime "macos-app/.release-work/python/cpython-3.13.15-macos-${{ matrix.python_arch }}-none"
           --tools macos-app/.release-work/tools --arch "${{ matrix.arch }}"
       - name: Check extracted candidate
-        run: python3 macos-app/scripts/check-release.py "macos-app/dist/release-candidate/Playlist-Ferry-2.0.3-macos-${{ matrix.arch }}.zip"
+        run: python3 macos-app/scripts/check-release.py "macos-app/dist/release-candidate/Playlist-Ferry-2.0.4-macos-${{ matrix.arch }}.zip"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Playlist-Ferry-2.0.3-${{ matrix.arch }}
+          name: Playlist-Ferry-2.0.4-${{ matrix.arch }}
           path: macos-app/dist/release-candidate/*.zip*
           retention-days: 14

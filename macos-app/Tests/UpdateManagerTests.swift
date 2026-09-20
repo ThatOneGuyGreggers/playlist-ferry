@@ -4,6 +4,7 @@ import Foundation
 struct UpdateManagerTests {
     @MainActor
     static func main() throws {
+        try expect(UpdateManager.isNewer("2.0.4", than: "2.0.3"), "Fixed updater target was not detected")
         try expect(UpdateManager.isNewer("2.0.2", than: "2.0.1"), "Updater test release was not detected")
         try expect(UpdateManager.isNewer("2.0.1", than: "2.0.0"), "Patch update was not detected")
         try expect(UpdateManager.isNewer("2.1.0", than: "2.0.99"), "Minor update was not detected")
@@ -23,7 +24,7 @@ struct UpdateManagerTests {
             !UpdateManager.supportsArchitecture("arm64", lipoOutput: "x86_64\n"),
             "An unsupported architecture was accepted"
         )
-        print("All ten updater checks passed.")
+        print("All eleven updater checks passed.")
     }
 
     private static func expect(_ condition: Bool, _ message: String) throws {
