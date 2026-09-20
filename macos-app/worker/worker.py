@@ -389,9 +389,7 @@ def prepare_download_song(song, output_format: str):
     return song
 
 
-def apply_youtube_artwork_choice(
-    songs: list, artwork: str, playlist_cover_url: object
-) -> list:
+def apply_youtube_artwork_choice(songs: list, artwork: str) -> list:
     """Keep per-video artwork unless the user declines all artwork."""
     if artwork in {"video", "both"}:
         return songs
@@ -677,9 +675,7 @@ def handle(request: dict) -> None:
         playlist_cover_url = (
             metadata.get("cover_url") if isinstance(metadata, dict) else None
         )
-        songs = apply_youtube_artwork_choice(
-            songs, youtube_artwork, playlist_cover_url
-        )
+        songs = apply_youtube_artwork_choice(songs, youtube_artwork)
     if action != "retry_track":
         emit("playlist", metadata=metadata, songs=[song_data(song) for song in songs])
     if action == "retry_track":

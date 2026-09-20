@@ -13,14 +13,12 @@ struct Track: Decodable, Identifiable {
 struct PlaylistMetadata: Decodable {
     let name: String
     let author_name: String
-    let description: String?
 }
 
 private struct WorkerEvent: Decodable {
     let event: String
     let message: String?
     let id: String?
-    let path: String?
     let playlist_path: String?
     let artwork_path: String?
     let failed: Int?

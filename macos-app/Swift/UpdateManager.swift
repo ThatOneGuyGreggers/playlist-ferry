@@ -5,7 +5,6 @@ import Foundation
 
 struct AvailableUpdate: Identifiable {
     let version: String
-    let releaseURL: URL
     let archiveURL: URL
     let checksumURL: URL
 
@@ -19,7 +18,6 @@ private struct GitHubRelease: Decodable {
     }
 
     let tag_name: String
-    let html_url: URL
     let assets: [Asset]
 }
 
@@ -66,10 +64,6 @@ final class UpdateManager: ObservableObject {
         }
     }
 
-    func openRelease(_ update: AvailableUpdate) {
-        NSWorkspace.shared.open(update.releaseURL)
-    }
-
     private func fetchAvailableUpdate() async throws -> AvailableUpdate? {
         let endpoint = URL(string: "https://api.github.com/repos/\(repository)/releases/latest")!
         var request = URLRequest(url: endpoint)
@@ -90,12 +84,10 @@ final class UpdateManager: ObservableObject {
         else {
             throw UpdateError.assetsMissing
         }
-        try Self.requireGitHubURL(release.html_url)
         try Self.requireGitHubURL(archive.browser_download_url)
         try Self.requireGitHubURL(checksum.browser_download_url)
         return AvailableUpdate(
             version: version,
-            releaseURL: release.html_url,
             archiveURL: archive.browser_download_url,
             checksumURL: checksum.browser_download_url
         )

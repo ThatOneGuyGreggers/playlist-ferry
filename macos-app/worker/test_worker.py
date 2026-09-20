@@ -97,19 +97,15 @@ class WorkerProtocolTests(unittest.TestCase):
 
         song = Song("https://i.ytimg.com/example.jpg")
         self.assertEqual(
-            worker.apply_youtube_artwork_choice(
-                [song], "video", "https://example.com/playlist.jpg"
-            )[0].cover_url,
+            worker.apply_youtube_artwork_choice([song], "video")[0].cover_url,
             song.cover_url,
         )
         self.assertEqual(
-            worker.apply_youtube_artwork_choice(
-                [song], "both", "https://example.com/playlist.jpg"
-            )[0].cover_url,
+            worker.apply_youtube_artwork_choice([song], "both")[0].cover_url,
             song.cover_url,
         )
         self.assertIsNone(
-            worker.apply_youtube_artwork_choice([song], "none", None)[0].cover_url
+            worker.apply_youtube_artwork_choice([song], "none")[0].cover_url
         )
 
     def test_writes_playlist_artwork_without_overwriting(self):
